@@ -67,7 +67,7 @@ jobs:
           sudo apt-get update
 
           if [ $UBUNTU_VERSION == "22.04" ]; then
-            sudo apt-get install git ccache automake axel flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python2 python3
+            sudo apt-get install git ccache automake axel flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python2 python3 llvm lld wget vim libswitch-perl x11proto-core-dev kmod python3-pip
             sudo apt-get install p7zip p7zip-full -y
           else
             sudo apt-get install git ccache automake axel flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python3
@@ -92,24 +92,12 @@ jobs:
           fi
           echo "KERNEL_VERSION=$(head -n 3 device_kernel/Makefile | grep -E 'VERSION|PATCHLEVEL' | awk '{print $3}' | paste -sd '.')" >> $GITHUB_ENV
 
-      - name: start lxc and docker config
-        run: |
-          cd $GITHUB_WORKSPACE
-          axel https://github.com/jqtmviyu/LXC_KernelSU_Action/raw/refs/heads/main/patches/lxc-docker-config.conf
-          cat lxc-docker-config.conf >> device_kernel/arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
-          echo "# CONFIG_ANDROID_PARANOID_NETWORK is not set" >> device_kernel/arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
-
-      - name: add runc fix
-        run: |
-          cd $GITHUB_WORKSPACE
-          axel https://github.com/jqtmviyu/LXC_KernelSU_Action/raw/refs/heads/main/patches/runcpatch.sh
-          chmod a+x runcpatch.sh
-          if [ -f device_kernel/kernel/cgroup.c ]; then
-          ./runcpatch.sh android-kernel/kernel/cgroup.c
-          fi
-          if [ -f device_kernel/kernel/cgroup/cgroup.c ]; then
-          ./runcpatch.sh device_kernel/kernel/cgroup/cgroup.c
-          fi
+      - name: Setup ccache
+        if: env.ENABLE_CCACHE == 'true'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-kernel-${{ env.DEVICE }}${{ env.UPLOADNAME }}
+          max-size: 2G
 
       - name: Set KSU and SUSFS for DEFCONFIG
         run: |
@@ -261,7 +249,35 @@ jobs:
         with:
           key: build-kernel-${{ env.DEVICE_NAME }}${{ env.UPLOADNAME }}
           max-size: 2G
-
+          
+      - name: Setup LXC
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel
+          rm -rf utils
+          git clone https://github.com/tomxi1997/lxc-docker-support-for-android.git utils
+          echo 'source "utils/Kconfig"' >> "Kconfig"
+  
+          echo "CONFIG_DOCKER=y" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+  
+          sed -i '/CONFIG_ANDROID_PARANOID_NETWORK/d' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          echo "# CONFIG_ANDROID_PARANOID_NETWORK is not set" >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+            
+          #sed -i '/CONFIG_LOCALVERSION/d' arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          #echo 'CONFIG_LOCALVERSION="-LXC-KernelSU-support_Pdx"' >> arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+            
+          chmod +x $GITHUB_WORKSPACE/device_kernel/utils/runcpatch.sh
+          if [ -f $GITHUB_WORKSPACE/device_kernel/kernel/cgroup/cgroup.c ]; then
+              sh $GITHUB_WORKSPACE/device_kernel/utils/runcpatch.sh $GITHUB_WORKSPACE/device_kernel/kernel/cgroup/cgroup.c
+          fi
+  
+          if [ -f $GITHUB_WORKSPACE/device_kernel/kernel/cgroup.c ]; then
+              sh $GITHUB_WORKSPACE/device_kernel/utils/runcpatch.sh $GITHUB_WORKSPACE/device_kernel/kernel/cgroup.c
+          fi
+  
+          if [ -f $GITHUB_WORKSPACE/device_kernel/net/netfilter/xt_qtaguid.c ]; then
+              patch -p0 < $GITHUB_WORKSPACE/device_kernel/utils/xt_qtaguid.patch
+          fi
+         
       - name: Build Kernel
         run: |
           export PATH=$GITHUB_WORKSPACE/clang-custom/bin:$PATH
