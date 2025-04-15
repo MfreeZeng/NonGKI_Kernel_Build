@@ -92,24 +92,24 @@ jobs:
           fi
           echo "KERNEL_VERSION=$(head -n 3 device_kernel/Makefile | grep -E 'VERSION|PATCHLEVEL' | awk '{print $3}' | paste -sd '.')" >> $GITHUB_ENV
 
-    - name: start lxc and docker config
-      run: |
-        cd $GITHUB_WORKSPACE
-        axel https://github.com/jqtmviyu/LXC_KernelSU_Action/raw/refs/heads/main/patches/lxc-docker-config.conf
-        cat lxc-docker-config.conf >> device_kernel/arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
-        echo "# CONFIG_ANDROID_PARANOID_NETWORK is not set" >> device_kernel/arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+      - name: start lxc and docker config
+        run: |
+          cd $GITHUB_WORKSPACE
+          axel https://github.com/jqtmviyu/LXC_KernelSU_Action/raw/refs/heads/main/patches/lxc-docker-config.conf
+          cat lxc-docker-config.conf >> device_kernel/arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          echo "# CONFIG_ANDROID_PARANOID_NETWORK is not set" >> device_kernel/arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
 
-    - name: add runc fix
-      run: |
-        cd $GITHUB_WORKSPACE
-        axel https://github.com/jqtmviyu/LXC_KernelSU_Action/raw/refs/heads/main/patches/runcpatch.sh
-        chmod a+x runcpatch.sh
-        if [ -f device_kernel/kernel/cgroup.c ]; then
-        ./runcpatch.sh android-kernel/kernel/cgroup.c
-        fi
-        if [ -f device_kernel/kernel/cgroup/cgroup.c ]; then
-        ./runcpatch.sh device_kernel/kernel/cgroup/cgroup.c
-        fi
+      - name: add runc fix
+        run: |
+          cd $GITHUB_WORKSPACE
+          axel https://github.com/jqtmviyu/LXC_KernelSU_Action/raw/refs/heads/main/patches/runcpatch.sh
+          chmod a+x runcpatch.sh
+          if [ -f device_kernel/kernel/cgroup.c ]; then
+          ./runcpatch.sh android-kernel/kernel/cgroup.c
+          fi
+          if [ -f device_kernel/kernel/cgroup/cgroup.c ]; then
+          ./runcpatch.sh device_kernel/kernel/cgroup/cgroup.c
+          fi
 
       - name: Set KSU and SUSFS for DEFCONFIG
         run: |
