@@ -25,13 +25,13 @@ jobs:
           remove-haskell: "true"
           remove-codeql: "true"
           
-      - name: Set up swap
-        run: |
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+      #- name: Set up swap
+        #run: |
+          #sudo fallocate -l 8G /swapfile
+          #sudo chmod 600 /swapfile
+          #sudo mkswap /swapfile
+          #sudo swapon /swapfile
+          #free -h
 
       - uses: actions/checkout@v4
       - name: Prepare Configuration
