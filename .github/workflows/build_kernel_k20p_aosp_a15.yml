@@ -14,27 +14,17 @@ jobs:
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
         with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: false
-
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: false
-          swap-storage: true
-
-      - name: Remove useless tools
-        run: |
-          sudo rm -rf /opt/hostedtoolcache
-          df -h
-
+          root-reserve-mb: 8192
+          temp-reserve-mb: 4096
+          swap-size-mb: 8192
+          remove-dotnet: "true"
+          remove-android: "false"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          
       - name: Set up swap
         run: |
           sudo fallocate -l 8G /swapfile
