@@ -8,7 +8,7 @@ env:
 jobs:
   build:
     name: Build Kernel by ${{ github.actor }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
@@ -19,7 +19,7 @@ jobs:
         with:
           # this might remove tools that are actually needed,
           # if set to "true" but frees about 6 GB
-          tool-cache: true
+          tool-cache: false
 
           # all of these default to true, but feel free to set to
           # "false" if necessary for your workflow
@@ -27,7 +27,7 @@ jobs:
           dotnet: true
           haskell: true
           large-packages: true
-          docker-images: true
+          docker-images: false
           swap-storage: true
 
       - name: Remove useless tools
@@ -101,7 +101,7 @@ jobs:
           cd clang-custom
           wget https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman -O antman
           chmod +x antman
-          bash antman -S=v3.0
+          bash antman -S
 
       - name: Get Kernel Source
         run: |
