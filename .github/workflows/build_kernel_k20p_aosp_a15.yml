@@ -95,6 +95,7 @@ jobs:
 
       - name: Set Compile Environment
         run: |
+          strings /lib/aarch64-linux-gnu/libc.so.6 |grep GLIBC_
           cd $GITHUB_WORKSPACE
           mkdir clang-custom
           cd clang-custom
