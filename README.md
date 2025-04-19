@@ -41,7 +41,7 @@
 **KERNELSU_NAME** - 部分KernelSU分支存在不同的名称，所以你需要填写正确名称，默认为KernelSU  
 
 **SUSFS_ENABLE** - 是否在编译时启用SUSFS，true或false  
-**SUSFS_FIXED** - 是否启用SUSFS错误修补，一般用于内核修补时产生错误后，二次补充修补  
+**SUSFS_FIXED** - 是否启用SUSFS错误修补，一般用于内核修补时产生错误后，二次补充修补。若该项为true，若**PATCHES_SOURCE**和**PATCHES_BRANCH**不正确，则会导致错误  
 
 **AK3_SOURCE** - Anykernel3所在之处，若需要的话，仅支持git  
 **AK3_BRANCH** - Anykernel3所需分支  
@@ -61,6 +61,7 @@
 本项目提供的所有补丁均不能保证在≤4.4内核能够正常使用  
 这是我们提供的示例文件：**codename_rom_template.env**和**build_kernel_template.yml**  
 **build_kernel_arch_template.yml**为基于Arch Linux的示例YAML，当前为Beta测试  
+Github放弃了Ubuntu 20.04，暂无其他方案，请耐心等待  
 
 - **env:** - 设置必要修改的变量，独立于Profiles
   - **PYTHON_VERSION** - Ubuntu的Python命令默认为Python3，但2仍有需求，因此增加该变量，可填写**2**或**3**。如果你仅仅需要安装python2但不想修改默认python，那你可以在EXTRA_CMDS中增加PYTHON=/usr/bin/python2，便可以强制执行python2参与编译
@@ -82,6 +83,7 @@
   - **GENERATE_CHIP** - 生成DTB文件的对应设备CPU，通常支持qcom、mediatek，但我们不确定其他CPU是否支持
   - **BUILD_DEBUGGER** - 若需要提供出错时的报告可使用该选项，目前提供patch错误rej文件的输出，其他功能可期待未来更新
   - **BUILD_OTHER_CONFIG** - 若你需要合并内核源码中自带的其他.config文件，可启用本项，但是需要自行修改”Build Kernel“中数组MERGE_CONFIG_FILES中的内容
+  - **FREE_MORE_SPACE** - 若你认为当前的空间不足，则可以启用该项来获得更多空间释放
 
 - **runs-on: ubuntu-XX.XX** 
   - 不同内核所需系统不同，默认为22.04，我们预先提供了两套包安装选项（适配22.04和24.04），我们通过检测系统版本进行决定包安装
@@ -119,6 +121,7 @@
   - 一切基于env中SUSFS_ENABLE和env.SUSFS_FIXED为true，但不一定都为true
   - SUSFS修补大概率会产生问题，因此通常情况下需要补充修补
   - 补充修补需要执行你重新制作的patch补丁（步骤为：Fixed Kernel Patch）
+  - 切记填写好**PATCHES_SOURCE**和**PATCHES_BRANCH**，否则会导致错误
   
 - **KPM Patcher (Experiment)**
   - 为SukiSU-Ultra提供KPM内核Patch功能，该功能目前暂不支持内核版本≤4.9的设备，若你已经反向移植部分功能用于KPM功能，请自行参照修改这个部分，但我们对实验性功能不提供支持

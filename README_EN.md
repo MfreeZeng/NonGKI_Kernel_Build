@@ -41,7 +41,7 @@ Each profile consists of the following elements:
 **KERNELSU_NAME** - Some KernelSU branches have different names, so you must specify the correct name. The default is KernelSU.  
 
 **SUSFS_ENABLE** - Whether to enable SUSFS during compilation (true or false).  
-**SUSFS_FIXED** - Whether to apply additional patches to fix SUSFS-related issues during kernel compilation.  
+**SUSFS_FIXED** - Whether to apply additional patches to fix SUSFS-related issues during kernel compilation. If this option is set to true, incorrect **PATCHES_SOURCE** and **PATCHES_BRANCH** values may cause errors.  
 
 **AK3_SOURCE** - Location of AnyKernel3 (if needed, only supports git).  
 **AK3_BRANCH** - Required branch for AnyKernel3.  
@@ -61,6 +61,7 @@ Only key configurable sections are highlighted; modifying steps and sequences ex
 All patches provided by this project are not guaranteed to work properly on kernel versions ≤4.4.  
 These are the example files we provide: **codename_rom_template.env** and **build_kernel_template.yml**.  
 **build_kernel_arch_template.yml** is a sample YAML based on Arch Linux and is currently in **Beta** testing.  
+GitHub has dropped support for Ubuntu 20.04. There is currently no alternative solution available—please be patient and wait for further updates.  
 
 - **env:** - Define essential variables independently from the Profiles configuration.
     - **PYTHON_VERSION** - The default Python command in Ubuntu is Python 3, but Python 2 is still needed in some cases. This variable allows you to specify 2 or 3. If you only need to install Python 2 without changing the default Python version, you can add PYTHON=/usr/bin/python2 to EXTRA_CMDS to force Python 2 to be used during compilation.
@@ -82,6 +83,7 @@ These are the example files we provide: **codename_rom_template.env** and **buil
     - **GENERATE_CHIP** - Specifies the CPU type for generating the DTB file. Typically supports qcom and mediatek, but compatibility with other CPUs is uncertain.
     - **BUILD_DEBUGGER** - Enables error reporting if needed. Currently, it provides output for patch error .rej files, with more features expected in future updates.
     - **BUILD_OTHER_CONFIG** - If you need to merge additional .config files included in the kernel source, you can enable this option. However, you must manually modify the MERGE_CONFIG_FILES array in the "Build Kernel" section.
+    - **FREE_MORE_SPACE** - If you believe the current available space is insufficient, you can enable this option to free up additional space.
 
 - **runs-on:** ubuntu-XX.XX 
     - Different kernels may require different Ubuntu versions. The default is 22.04, but support for both 22.04 and 24.04 is available. The system version determines which package installation method is used.
@@ -117,6 +119,7 @@ These are the example files we provide: **codename_rom_template.env** and **buil
     - Two types of patches are included: SUSFS patches and additional kernel patches.
     - Whether these patches are applied depends on SUSFS_ENABLE and SUSFS_FIXED settings in the env.
     - SUSFS patching may cause issues, requiring additional fixes (under Fixed Kernel Patch).
+    - Make sure to correctly fill in **PATCHES_SOURCE** and **PATCHES_BRANCH**, otherwise it will result in errors.
 
 - **KPM Patcher (Experiment)**
     - Provides KPM kernel patch support for SukiSU-Ultra. Currently, this feature does not support devices with kernel versions ≤ 4.9. If you have backported some functionality for KPM manually, please adjust this section accordingly — however, we do not offer support for experimental features.

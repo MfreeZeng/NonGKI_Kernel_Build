@@ -17,6 +17,7 @@ env:
   GENERATE_CHIP: "qcom" # only supported for qcom and mediatek.
   BUILD_DEBUGGER: "false" # Output build errors.
   BUILD_OTHER_CONFIG: "false" # Merge config files.
+  FREE_MORE_SPACE: "false" # if u want get more space, enabled it.
 
 
 jobs:
@@ -28,6 +29,37 @@ jobs:
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
     steps:
+      - name: Free Disk Space (Ubuntu)
+        if: env.FREE_MORE_SPACE == 'true'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: true
+
+          # all of these default to true, but feel free to set to
+          # "false" if necessary for your workflow
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Remove useless tools
+        run: |
+          sudo rm -rf /opt/hostedtoolcache
+          df -h
+
+      - name: Set up swap
+        if: env.OLDER_UBUNTU != 'true'
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
+
       - uses: actions/checkout@v4
       - name: Prepare Configuration
         run: |
@@ -74,35 +106,6 @@ jobs:
 
           # Move patch folder to tmp
           mv $GITHUB_WORKSPACE/Patches /tmp/
-
-      - name: Free Disk Space (Ubuntu)
-        if: env.LXC_ENABLE == 'true'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: true
-
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Maximize build space
-        if: env.LXC_ENABLE != 'true'
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 20480
-          temp-reserve-mb: 4096
-          swap-size-mb: 8192
-          remove-dotnet: "true"
-          remove-android: "false"
-          remove-haskell: "true"
-          remove-codeql: "true"
 
       - name: Install necessary packages
         run: |
@@ -284,19 +287,34 @@ jobs:
           echo "PACK_METHOD=${{ env.PACK_METHOD }}" >> $GITHUB_ENV
 
           if [[ ${{ env.KERNELSU_METHOD }} == "shell" ]]; then
-            curl -sSL ${{ env.KERNELSU_SOURCE }} | bash -s ${{ env.KERNELSU_BRANCH }}
+            if [[ "${{ env.KERNELSU_SOURCE }}" != *".sh" ]]; then
+                echo "You need to provide a link ending with .sh, not one ending with .git or any other extension !"
+                false
+            else
+                curl -sSL ${{ env.KERNELSU_SOURCE }} | bash -s ${{ env.KERNELSU_BRANCH }}
+            fi
           elif [[ ${{ env.KERNELSU_METHOD }} == "manual" ]]; then
-            rm -rf KernelSU && rm -rf KernelSU-Next
-            git clone ${{ env.KERNELSU_SOURCE }} -b ${{ env.KERNELSU_BRANCH }} ${{ env.KERNELSU_NAME }}
-            ln -sf "$(realpath --relative-to="$GITHUB_WORKSPACE/device_kernel/drivers" "$GITHUB_WORKSPACE/device_kernel/${{ env.KERNELSU_NAME }}/kernel")" "kernelsu"
-            grep -q "kernelsu" "$GITHUB_WORKSPACE/device_kernel/drivers/Makefile" || printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> $GITHUB_WORKSPACE/device_kernel/drivers/Makefile
-            grep -q "source \"drivers/kernelsu/Kconfig\"" "$GITHUB_WORKSPACE/device_kernel/drivers/Kconfig" || sed -i "/endmenu/i\source \"drivers/kernelsu/Kconfig\"" "$GITHUB_WORKSPACE/device_kernel/drivers/Kconfig"
-            echo "KernelSU Settings done."
+            if [[ "${{ env.KERNELSU_SOURCE }}" != *".git" ]]; then
+                echo "You need to provide a link ending with .git, not one ending with .sh or any other extension !"
+                false
+            else
+                rm -rf KernelSU && rm -rf KernelSU-Next
+                git clone ${{ env.KERNELSU_SOURCE }} -b ${{ env.KERNELSU_BRANCH }} ${{ env.KERNELSU_NAME }}
+                ln -sf "$(realpath --relative-to="$GITHUB_WORKSPACE/device_kernel/drivers" "$GITHUB_WORKSPACE/device_kernel/${{ env.KERNELSU_NAME }}/kernel")" "kernelsu"
+                grep -q "kernelsu" "$GITHUB_WORKSPACE/device_kernel/drivers/Makefile" || printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> $GITHUB_WORKSPACE/device_kernel/drivers/Makefile
+                grep -q "source \"drivers/kernelsu/Kconfig\"" "$GITHUB_WORKSPACE/device_kernel/drivers/Kconfig" || sed -i "/endmenu/i\source \"drivers/kernelsu/Kconfig\"" "$GITHUB_WORKSPACE/device_kernel/drivers/Kconfig"
+                echo "KernelSU Settings done."
+            fi
           elif [[ ${{ env.KERNELSU_METHOD }} == "only" ]];then
-            rm -rf *KernelSU* && rm -rf drivers/kernelsu
-            git clone ${{ env.KERNELSU_SOURCE }} -b ${{ env.KERNELSU_BRANCH }} ${{ env.KERNELSU_NAME }}
-            ln -sf ../${{ env.KERNELSU_NAME }}/kernel drivers/kernelsu
-            echo "KernelSU git done."
+            if [[ "${{ env.KERNELSU_SOURCE }}" != *".git" ]]; then
+                echo "You need to provide a link ending with .git, not one ending with .sh or any other extension !"
+                false
+            else
+                rm -rf *KernelSU* && rm -rf drivers/kernelsu
+                git clone ${{ env.KERNELSU_SOURCE }} -b ${{ env.KERNELSU_BRANCH }} ${{ env.KERNELSU_NAME }}
+                ln -sf ../${{ env.KERNELSU_NAME }}/kernel drivers/kernelsu
+                echo "KernelSU git done."
+            fi
           else
             false
           fi
